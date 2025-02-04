@@ -1,2 +1,5 @@
 # Ignore environment files
 .env
+
+# Ignore database migrations (optional, but recommended)
+migrations
