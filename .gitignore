@@ -2,4 +2,4 @@
 .env
 
 # Ignore database migrations (optional, but recommended)
-migrations
+migrations/
