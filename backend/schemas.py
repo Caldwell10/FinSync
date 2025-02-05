@@ -45,3 +45,18 @@ class TransactionResponse(BaseModel):
     description: str
     transaction_date: datetime
 
+
+# Budget Schema
+class BudgetCreate(BaseModel):
+    category: str
+    limit_amount: float
+    alert_threshold: float
+
+class BudgetResponse(BudgetCreate):
+    id:int
+    user_id:int
+
+    class Config:
+        orm_mode = True
+
+
