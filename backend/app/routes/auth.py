@@ -5,7 +5,8 @@ from passlib.context import CryptContext
 import jwt
 from backend.app.config.database import get_db
 from backend.app.models.models import User
-from backend.schemas import UserCreate, UserResponse, Token
+from backend.schemas import UserCreate, UserLogin,UserResponse, Token
+from fastapi.security import OAuth2PasswordBearer
 
 # Secret Key and algorithm
 SECRET_KEY = "b5ae6ce9db10339a44d0dd40bc88560f3697476c85e39f292d03cda8e7abfb26"
@@ -52,13 +53,29 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
 
 # Login User
 @router.post("/login", response_model=Token)
-def login_user(user: UserCreate, db: Session = Depends(get_db)):
+def login_user(user: UserLogin, db: Session = Depends(get_db)):
     db_user = db.query(User).filter_by(email=user.email).first()
     if not db_user or not verify_password(user.password, db_user.hashed_password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
 
     access_token = create_access_token(data={"sub": db_user.email},expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+"""
+Extracts the JWT token from the request header.
+Decodes the token to get the user’s email.
+If token is expired or invalid, it denies access.
+"""
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+def get_current_user(token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload["sub"]
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 
 
