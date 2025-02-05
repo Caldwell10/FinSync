@@ -1,12 +1,10 @@
 from fastapi import FastAPI
-from sqlalchemy.sql.functions import user
-
-from backend.app.config.database import engine, Base
+from backend.app.routes.transactions import router as transactions_router
 from backend.app.routes import auth
-
 app = FastAPI()
 
 app.include_router(auth.router)
+app.include_router(transactions_router)
 
 @app.get("/")
 def home():

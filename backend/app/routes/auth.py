@@ -1,12 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-from datetime import  datetime, timedelta
+from datetime import datetime, timedelta
 from passlib.context import CryptContext
 import jwt
+
 from backend.app.config.database import get_db
 from backend.app.models.models import User
-from backend.schemas import UserCreate, UserLogin,UserResponse, Token
-from fastapi.security import OAuth2PasswordBearer
+from backend.schemas import UserCreate, UserLogin, UserResponse, Token
 
 # Secret Key and algorithm
 SECRET_KEY = "b5ae6ce9db10339a44d0dd40bc88560f3697476c85e39f292d03cda8e7abfb26"
@@ -15,6 +16,9 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# OAuth2 Bearer Token for authentication
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 # Router
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -39,12 +43,12 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
 # Register User
 @router.post("/register", response_model=UserResponse)
 def register_user(user: UserCreate, db: Session = Depends(get_db)):
-    db_user = db.query(User).filter_by(email=user.email).first()
+    db_user = db.query(User).filter(User.email == user.email).first()
     if db_user:
         raise HTTPException(status_code=400, detail="Email already registered")
 
     hashed_password = hash_password(user.password)
-    new_user =User(name=user.name, email=user.email, hashed_password=hashed_password)
+    new_user = User(name=user.name, email=user.email, hashed_password=hashed_password)
 
     db.add(new_user)
     db.commit()
@@ -54,29 +58,22 @@ def register_user(user: UserCreate, db: Session = Depends(get_db)):
 # Login User
 @router.post("/login", response_model=Token)
 def login_user(user: UserLogin, db: Session = Depends(get_db)):
-    db_user = db.query(User).filter_by(email=user.email).first()
+    db_user = db.query(User).filter(User.email == user.email).first()
     if not db_user or not verify_password(user.password, db_user.hashed_password):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
 
-    access_token = create_access_token(data={"sub": db_user.email},expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    access_token = create_access_token(data={"sub": db_user.email}, expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     return {"access_token": access_token, "token_type": "bearer"}
 
-
-"""
-Extracts the JWT token from the request header.
-Decodes the token to get the user’s email.
-If token is expired or invalid, it denies access.
-"""
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+# Get Current User from Token
 def get_current_user(token: str = Depends(oauth2_scheme)):
+    if token.startswith("Bearer "):
+        token = token.replace("Bearer ", "")  # 🔹 Remove "Bearer " before decoding
+
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload["sub"]
+        return payload["sub"]  # 🔹 Returns user's email
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Token expired")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
-
-
-
-
