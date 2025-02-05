@@ -1,7 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from datetime import datetime
-
-from sqlalchemy import FLOAT
+from typing import Optional
 
 
 # User Registration Schema
@@ -58,5 +57,23 @@ class BudgetResponse(BudgetCreate):
 
     class Config:
         orm_mode = True
+
+class GamificationResponse(BaseModel):
+    id: int
+    user_id: int
+    streak_days: int
+    achievements: Optional[str]
+    rewards_points: int
+
+    class Config:
+        orm_mode = True
+
+class GamificationUpdate(BaseModel):
+    streak_days: int
+    achievements: Optional[str]
+    rewards_points: int
+
+
+
 
 
