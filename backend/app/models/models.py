@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, Text
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from backend.app.config.database import Base
@@ -52,5 +52,16 @@ class Budget(Base):
     category = Column(String, nullable=False)  # Example: "Food", "Transport"
     limit_amount = Column(Float, nullable=False)  # Budget limit
     alert_threshold = Column(Float, default=0.8)  # Alert at 80% usage
-
     user = relationship("User", back_populates="budgets")
+
+class NewsArticle(Base):
+    __tablename__ = "news_articles"
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    source = Column(String, nullable=False)
+    url = Column(String, unique=True, nullable=False)
+    content = Column(String, unique =True, nullable=False)
+    published_date=Column(DateTime, default=datetime.utcnow)
+
+
+
